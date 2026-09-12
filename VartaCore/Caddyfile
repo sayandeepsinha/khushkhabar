@@ -1,0 +1,16 @@
+# Caddy Reverse Proxy Configuration for Varta
+# For local Mac development: listens on port 80 / localhost
+# For production: change :80 to your domain (e.g. varta.news) for automatic HTTPS
+
+:80 {
+    # Proxy API and backend traffic
+    reverse_proxy backend:8080
+
+    # Compression and security headers
+    encode zstd gzip
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}

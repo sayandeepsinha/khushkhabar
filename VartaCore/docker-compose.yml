@@ -1,0 +1,79 @@
+services:
+  # 1. VartaCore Go Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vartacore_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ENV=production
+      - MYSQL_DSN=root:vartapass@tcp(mysql:3306)/varta?parseTime=true&charset=utf8mb4
+      - REDIS_ADDR=redis:6379
+      - NEWS_FETCH_INTERVAL_MINUTES=15
+      - RSS_FEEDS=https://www.goodnewsnetwork.org/feed/,https://www.positive.news/feed/,https://www.optimistdaily.com/feed/,http://feeds.bbci.co.uk/news/science_and_environment/rss.xml
+      - CORS_ALLOWED_ORIGIN=*
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # 2. MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: vartacore_mysql
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: vartapass
+      MYSQL_DATABASE: varta
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pvartapass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # 3. Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: vartacore_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # 4. Caddy Reverse Proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: vartacore_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
