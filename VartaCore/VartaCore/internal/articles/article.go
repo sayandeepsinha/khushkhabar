@@ -156,16 +156,21 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// Helper to extract authenticated user or fallback to demo user
+// Helper to extract authenticated user or return empty for guest visitors
 func getUserID(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		token := strings.TrimPrefix(authHeader, "Bearer ")
+		token = strings.TrimSpace(token)
 		if token != "" {
-			return "usr-varta-01" // Demo / active user
+			parts := strings.Split(token, "_")
+			if len(parts) >= 3 && parts[0] == "jwt" && parts[1] != "" {
+				return parts[1]
+			}
+			return "usr-varta-01" // Active user context fallback
 		}
 	}
-	return "usr-varta-01" // Default user context for seamless UI interaction
+	return "" // Unauthenticated visitor -> enables full Redis caching
 }
 
 // ListArticles handles GET /api/articles?category=slug&search=q&limit=30&offset=0
@@ -255,6 +260,10 @@ func (h *Handler) BookmarkArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := getUserID(r)
+	if userID == "" {
+		common.WriteError(w, http.StatusUnauthorized, "must be signed in to bookmark")
+		return
+	}
 	bookmarked, err := h.service.ToggleBookmark(r.Context(), userID, id)
 	if err != nil {
 		common.WriteError(w, http.StatusInternalServerError, "failed to toggle bookmark")

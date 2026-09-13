@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -23,6 +24,16 @@ func setupTestServer() http.Handler {
 	}
 
 	repo := dbactivity.NewMemoryRepository()
+	_ = repo.SaveArticle(context.Background(), &dbactivity.Article{
+		ID:              "test-art-1",
+		Title:           "Test Uplifting Story",
+		Summary:         "A wonderful positive test summary.",
+		Category:        "Planet & Climate",
+		CategorySlug:    "planet",
+		PositivityScore: 95,
+		IsFeatured:      true,
+		IsBestOfWeek:    true,
+	})
 	c := cache.NewMemoryCache()
 
 	catService := catagory.NewService(repo, c)
@@ -115,20 +126,40 @@ func TestArticlesEndpoints(t *testing.T) {
 		t.Fatalf("GET /api/articles/best expected 200, got %d", recBest.Code)
 	}
 
-	// 4. Bookmark toggle
-	reqBookmark := httptest.NewRequest("POST", "/api/articles/art-1/bookmark", nil)
+	// 4. Bookmark toggle unauthorized
+	reqBookmarkAnon := httptest.NewRequest("POST", "/api/articles/test-art-1/bookmark", nil)
+	recBookmarkAnon := httptest.NewRecorder()
+	router.ServeHTTP(recBookmarkAnon, reqBookmarkAnon)
+	if recBookmarkAnon.Code != http.StatusUnauthorized {
+		t.Fatalf("POST /api/articles/test-art-1/bookmark without auth expected 401, got %d", recBookmarkAnon.Code)
+	}
+
+	// 5. Bookmark toggle authorized
+	reqBookmark := httptest.NewRequest("POST", "/api/articles/test-art-1/bookmark", nil)
+	reqBookmark.Header.Set("Authorization", "Bearer jwt_usr-varta-01_testtok")
 	recBookmark := httptest.NewRecorder()
 	router.ServeHTTP(recBookmark, reqBookmark)
 	if recBookmark.Code != http.StatusOK {
-		t.Fatalf("POST /api/articles/art-1/bookmark expected 200, got %d", recBookmark.Code)
+		t.Fatalf("POST /api/articles/test-art-1/bookmark with auth expected 200, got %d", recBookmark.Code)
 	}
 }
 
 func TestAuthAndPreferences(t *testing.T) {
 	router := setupTestServer()
 
-	// 1. Register / Login
-	loginBody := `{"email":"test@varta.news","password":"secretpassword"}`
+	// 1. Register
+	regBody := `{"name":"Tester One","email":"tester1@varta.news","password":"secretpassword"}`
+	reqReg := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(regBody))
+	reqReg.Header.Set("Content-Type", "application/json")
+	recReg := httptest.NewRecorder()
+	router.ServeHTTP(recReg, reqReg)
+
+	if recReg.Code != http.StatusCreated {
+		t.Fatalf("POST /api/auth/register expected 201, got %d (body: %s)", recReg.Code, recReg.Body.String())
+	}
+
+	// 2. Login
+	loginBody := `{"email":"tester1@varta.news","password":"secretpassword"}`
 	reqLogin := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(loginBody))
 	reqLogin.Header.Set("Content-Type", "application/json")
 	recLogin := httptest.NewRecorder()
@@ -138,8 +169,9 @@ func TestAuthAndPreferences(t *testing.T) {
 		t.Fatalf("POST /api/auth/login expected 200, got %d", recLogin.Code)
 	}
 
-	// 2. Get preferences
+	// 3. Get preferences
 	reqPrefs := httptest.NewRequest("GET", "/api/user/preferences", nil)
+	reqPrefs.Header.Set("Authorization", "Bearer jwt_usr-varta-01_testtok")
 	recPrefs := httptest.NewRecorder()
 	router.ServeHTTP(recPrefs, reqPrefs)
 

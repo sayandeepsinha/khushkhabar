@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -45,8 +46,54 @@ func ConnectMySQL(cfg DBConfig) (*sql.DB, error) {
 
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
+
+		// If error is due to unknown database, attempt to auto-create it
+		if strings.Contains(err.Error(), "1049") || strings.Contains(strings.ToLower(err.Error()), "unknown database") {
+			if autoErr := tryAutoCreateDatabase(cfg.DSN); autoErr == nil {
+				// Retry connection now that database is created
+				return ConnectMySQL(cfg)
+			}
+		}
+
 		return nil, fmt.Errorf("mysql ping failed: %w", err)
 	}
 
 	return db, nil
+}
+
+func tryAutoCreateDatabase(dsn string) error {
+	slashIdx := strings.LastIndex(dsn, "/")
+	if slashIdx == -1 {
+		return fmt.Errorf("invalid dsn format")
+	}
+
+	dbPart := dsn[slashIdx+1:]
+	questionIdx := strings.Index(dbPart, "?")
+	dbName := dbPart
+	if questionIdx != -1 {
+		dbName = dbPart[:questionIdx]
+	}
+
+	if dbName == "" {
+		return fmt.Errorf("no db name specified")
+	}
+
+	// Base DSN without database name
+	baseDSN := dsn[:slashIdx+1]
+	if questionIdx != -1 {
+		baseDSN += dbPart[questionIdx:]
+	}
+
+	adminDB, err := sql.Open("mysql", baseDSN)
+	if err != nil {
+		return err
+	}
+	defer adminDB.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	createSQL := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;", dbName)
+	_, err = adminDB.ExecContext(ctx, createSQL)
+	return err
 }

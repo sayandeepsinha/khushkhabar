@@ -64,6 +64,12 @@ func main() {
 	// 3. Initialize Cache (Redis with In-Memory fallback)
 	c := cache.NewCache(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB)
 
+	// Invalidate homepage and article caches on startup to purge any stale cached dummy articles
+	initCtx, cancelInit := context.WithTimeout(context.Background(), 3*time.Second)
+	_ = c.Delete(initCtx, cache.KeyFeaturedArticle, cache.KeyBestArticles, cache.KeyCategories)
+	_ = c.FlushPattern(initCtx, "articles:*")
+	cancelInit()
+
 	// 4. Initialize Core Domain Services
 	catService := catagory.NewService(repo, c)
 	artService := articles.NewService(repo, c)

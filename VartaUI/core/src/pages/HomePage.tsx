@@ -20,8 +20,11 @@ import { HeroArticle } from '../components/news/HeroArticle';
 import { BestNewsSection } from '../components/news/BestNewsSection';
 import { CategoryBar } from '../components/news/CategoryBar';
 import { ArticleCard } from '../components/news/ArticleCard';
+import { useAuth } from '../context/AuthContext';
+import { SignInBanner } from '../components/auth/SignInBanner';
 
 export const HomePage = () => {
+  const { currentUser, openAuthModal } = useAuth();
   const [featuredArticle, setFeaturedArticle] = useState<Article | null>(null);
   const [bestArticles, setBestArticles] = useState<Article[]>([]);
   const [latestArticles, setLatestArticles] = useState<Article[]>([]);
@@ -73,6 +76,11 @@ export const HomePage = () => {
   }, [selectedCategory, searchQuery, featuredArticle?.id]);
 
   const handleToggleBookmark = async (articleId: string) => {
+    if (!currentUser) {
+      openAuthModal("Sign in to bookmark this story and save it to your personal reading list.");
+      return;
+    }
+
     const isNowBookmarked = await toggleBookmarkArticle(articleId);
 
     // Update state locally
@@ -204,6 +212,7 @@ export const HomePage = () => {
 
       </main>
 
+      <SignInBanner />
       <Footer />
     </div>
   );

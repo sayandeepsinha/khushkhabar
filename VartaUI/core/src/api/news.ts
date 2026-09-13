@@ -8,9 +8,9 @@ const BOOKMARKS_KEY = 'varta_bookmarks';
 const getLocalBookmarks = (): string[] => {
   try {
     const saved = localStorage.getItem(BOOKMARKS_KEY);
-    return saved ? JSON.parse(saved) : ['art-1', 'art-3'];
+    return saved ? JSON.parse(saved) : [];
   } catch {
-    return ['art-1', 'art-3'];
+    return [];
   }
 };
 
@@ -31,6 +31,7 @@ export async function getFeaturedArticle(): Promise<Article | null> {
     await simulateDelay();
     const bookmarks = getLocalBookmarks();
     const featured = MOCK_ARTICLES.find((a) => a.isFeatured) || MOCK_ARTICLES[0];
+    if (!featured) return null;
     return {
       ...featured,
       bookmarked: bookmarks.includes(featured.id),

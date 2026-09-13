@@ -34,19 +34,28 @@ type Cacher interface {
 
 // NewCache attempts connecting to Redis; falls back to in-memory cache seamlessly
 func NewCache(addr, password string, db int) Cacher {
+	var candidates []string
 	if addr != "" {
+		candidates = append(candidates, addr)
+	}
+	if addr != "127.0.0.1:6379" && addr != "localhost:6379" {
+		candidates = append(candidates, "127.0.0.1:6379")
+	}
+
+	for _, targetAddr := range candidates {
 		client := redis.NewClient(&redis.Options{
-			Addr:        addr,
+			Addr:        targetAddr,
 			Password:    password,
 			DB:          db,
-			DialTimeout: 2 * time.Second,
+			DialTimeout: 1500 * time.Millisecond,
 		})
 
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
+		ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+		err := client.Ping(ctx).Err()
+		cancel()
 
-		if err := client.Ping(ctx).Err(); err == nil {
-			log.Printf("Connected to Redis cache at %s", addr)
+		if err == nil {
+			log.Printf("Connected to Redis cache at %s", targetAddr)
 			return &RedisCache{client: client}
 		}
 		_ = client.Close()

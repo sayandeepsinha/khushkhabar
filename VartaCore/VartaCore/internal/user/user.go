@@ -1,8 +1,10 @@
 package user
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -49,8 +51,11 @@ func hashPassword(pass string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func (s *Service) Login(email, password string) (*AuthResponse, error) {
-	u, err := s.repo.GetUserByEmail(nil, email)
+func (s *Service) Login(ctx context.Context, email, password string) (*AuthResponse, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	u, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		demo := dbactivity.User{
 			ID:        common.GenerateID("usr-"),
@@ -59,11 +64,11 @@ func (s *Service) Login(email, password string) (*AuthResponse, error) {
 			AvatarURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
 			CreatedAt: time.Now(),
 		}
-		_ = s.repo.CreateUser(nil, &demo)
+		_ = s.repo.CreateUser(ctx, &demo)
 		u = &demo
 	}
 
-	token := "jwt_" + common.GenerateID("token-")
+	token := fmt.Sprintf("jwt_%s_%s", u.ID, common.GenerateID("token-"))
 	return &AuthResponse{
 		User:    *u,
 		Token:   token,
@@ -71,10 +76,13 @@ func (s *Service) Login(email, password string) (*AuthResponse, error) {
 	}, nil
 }
 
-func (s *Service) Register(name, email, password string) (*AuthResponse, error) {
-	existing, _ := s.repo.GetUserByEmail(nil, email)
+func (s *Service) Register(ctx context.Context, name, email, password string) (*AuthResponse, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	existing, _ := s.repo.GetUserByEmail(ctx, email)
 	if existing != nil {
-		return s.Login(email, password)
+		return s.Login(ctx, email, password)
 	}
 
 	u := dbactivity.User{
@@ -86,16 +94,33 @@ func (s *Service) Register(name, email, password string) (*AuthResponse, error) 
 		CreatedAt:    time.Now(),
 	}
 
-	if err := s.repo.CreateUser(nil, &u); err != nil {
+	if err := s.repo.CreateUser(ctx, &u); err != nil {
 		return nil, err
 	}
 
-	token := "jwt_" + common.GenerateID("token-")
+	token := fmt.Sprintf("jwt_%s_%s", u.ID, common.GenerateID("token-"))
 	return &AuthResponse{
 		User:    u,
 		Token:   token,
 		Message: "Account created successfully",
 	}, nil
+}
+
+// Helper to extract authenticated user ID from Authorization header
+func extractUserID(r *http.Request) string {
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		token = strings.TrimSpace(token)
+		if token != "" {
+			parts := strings.Split(token, "_")
+			if len(parts) >= 3 && parts[0] == "jwt" && parts[1] != "" {
+				return parts[1]
+			}
+			return "usr-varta-01"
+		}
+	}
+	return "usr-varta-01"
 }
 
 // Handler handles HTTP requests for user and authentication
@@ -118,7 +143,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.service.Login(req.Email, req.Password)
+	res, err := h.service.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		common.WriteError(w, http.StatusUnauthorized, "invalid credentials")
 		return
@@ -140,7 +165,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		req.Name = "Positive Reader"
 	}
 
-	res, err := h.service.Register(req.Name, req.Email, req.Password)
+	res, err := h.service.Register(r.Context(), req.Name, req.Email, req.Password)
 	if err != nil {
 		common.WriteError(w, http.StatusInternalServerError, "failed to register user")
 		return
@@ -156,12 +181,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetPreferences(w http.ResponseWriter, r *http.Request) {
-	userID := "usr-varta-01"
-	authHeader := r.Header.Get("Authorization")
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		userID = "usr-varta-01"
-	}
-
+	userID := extractUserID(r)
 	prefs, err := h.service.repo.GetUserPreferences(r.Context(), userID)
 	if err != nil {
 		common.WriteError(w, http.StatusInternalServerError, "failed to retrieve preferences")
@@ -171,7 +191,7 @@ func (h *Handler) GetPreferences(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
-	userID := "usr-varta-01"
+	userID := extractUserID(r)
 	var updated dbactivity.UserPreferences
 	if err := common.ReadJSON(r, &updated); err != nil {
 		common.WriteError(w, http.StatusBadRequest, "invalid preference payload")
@@ -186,7 +206,7 @@ func (h *Handler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
-	userID := "usr-varta-01"
+	userID := extractUserID(r)
 	_ = h.service.repo.DeleteUser(r.Context(), userID)
 	common.WriteJSON(w, http.StatusOK, map[string]any{
 		"success": true,

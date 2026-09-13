@@ -10,7 +10,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { getCurrentUser, logout } from '../../api/auth';
+import { useAuth } from '../../context/AuthContext';
 
 interface NavbarProps {
   searchQuery?: string;
@@ -22,13 +22,12 @@ export const Navbar = ({ searchQuery = '', onSearchChange }: NavbarProps) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const currentUser = getCurrentUser();
+  const { currentUser, logout, openAuthModal } = useAuth();
 
   const handleLogout = async () => {
     await logout();
     setUserDropdownOpen(false);
     navigate('/');
-    window.location.reload();
   };
 
   const isCurrent = (path: string) => location.pathname === path;
@@ -42,10 +41,10 @@ export const Navbar = ({ searchQuery = '', onSearchChange }: NavbarProps) => {
             <span className="inline-flex items-center justify-center w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-medium tracking-wide">TODAY'S UPLIFT:</span>
             <span className="text-slate-300 hidden sm:inline">
-              142 positive breakthroughs published worldwide • 0% doom, 100% human progress
+              Continuous positive breakthroughs published worldwide • 0% doom, 100% human progress
             </span>
             <span className="text-slate-300 sm:hidden">
-              142 positive stories today
+              Real-time positive breakthroughs
             </span>
           </div>
           <div className="flex items-center space-x-4 text-xs text-amber-200">
@@ -186,12 +185,12 @@ export const Navbar = ({ searchQuery = '', onSearchChange }: NavbarProps) => {
                 )}
               </div>
             ) : (
-              <Link
-                to="/login"
-                className="ml-2 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-amber-700 transition-colors shadow-xs"
+              <button
+                onClick={() => openAuthModal()}
+                className="ml-2 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-amber-700 transition-colors shadow-xs cursor-pointer"
               >
                 Sign In
-              </Link>
+              </button>
             )}
           </nav>
 
@@ -253,13 +252,15 @@ export const Navbar = ({ searchQuery = '', onSearchChange }: NavbarProps) => {
                   Sign Out ({currentUser.name})
                 </button>
               ) : (
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 text-amber-700 font-medium hover:bg-amber-50"
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    openAuthModal();
+                  }}
+                  className="w-full text-left px-3 py-2 text-amber-700 font-medium hover:bg-amber-50 rounded-md"
                 >
                   Sign In / Register
-                </Link>
+                </button>
               )}
             </div>
           </div>

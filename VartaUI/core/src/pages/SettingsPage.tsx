@@ -4,7 +4,7 @@ import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { PreferencesTab } from '../components/settings/PreferencesTab';
 import { DeleteAccountTab } from '../components/settings/DeleteAccountTab';
-import { getCurrentUser } from '../api/auth';
+import { useAuth } from '../context/AuthContext';
 
 interface SettingsPageProps {
   defaultTab?: 'preferences' | 'delete-account';
@@ -13,7 +13,7 @@ interface SettingsPageProps {
 export const SettingsPage = ({ defaultTab = 'preferences' }: SettingsPageProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
+  const { currentUser, openAuthModal } = useAuth();
 
   const isDeleteAccount = location.pathname.includes('delete-account') || defaultTab === 'delete-account';
   const activeTab = isDeleteAccount ? 'delete-account' : 'preferences';
@@ -44,31 +44,37 @@ export const SettingsPage = ({ defaultTab = 'preferences' }: SettingsPageProps) 
         {/* User Greeting Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-white border border-[#EAE4D9] shadow-xs mb-8">
           <div className="flex items-center space-x-4">
-            <img
-              src={currentUser?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"}
-              alt="User Avatar"
-              className="w-14 h-14 rounded-2xl object-cover border-2 border-amber-300 shadow-sm"
-            />
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700 border-2 border-amber-300 shadow-xs shrink-0">
+              <UserCheck className="w-7 h-7" />
+            </div>
             <div>
               <div className="flex items-center space-x-2">
                 <h1 className="font-serif-editorial text-2xl font-bold text-slate-900">
-                  {currentUser?.name || 'Reader'}
+                  {currentUser?.name || 'Guest Reader'}
                 </h1>
                 <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                  <UserCheck className="w-3 h-3 text-amber-600" />
-                  <span>Verified Mindful Reader</span>
+                  <span>{currentUser ? 'Verified Mindful Reader' : 'Guest Mode'}</span>
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-mono mt-0.5">
-                {currentUser?.email || 'reader@varta.news'}
+                {currentUser?.email || 'Sign in to sync your preferences across devices'}
               </p>
             </div>
           </div>
 
-          <div className="text-xs text-slate-500 bg-amber-50/60 border border-amber-200/60 px-4 py-2 rounded-xl self-start sm:self-auto">
-            <span className="font-semibold text-amber-900">Varta Member</span>
-            <p className="text-[11px] text-amber-800">Reading positive news since 2025</p>
-          </div>
+          {!currentUser ? (
+            <button
+              onClick={() => openAuthModal('Sign in to customize and sync your reading preferences.')}
+              className="px-4 py-2 bg-slate-900 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition-colors self-start sm:self-auto shadow-xs cursor-pointer"
+            >
+              Sign In to Save
+            </button>
+          ) : (
+            <div className="text-xs text-slate-500 bg-amber-50/60 border border-amber-200/60 px-4 py-2 rounded-xl self-start sm:self-auto">
+              <span className="font-semibold text-amber-900">Varta Member</span>
+              <p className="text-[11px] text-amber-800">Reading positive news</p>
+            </div>
+          )}
         </div>
 
         {/* Settings Navigation Tabs */}

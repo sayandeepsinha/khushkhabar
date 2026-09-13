@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -23,10 +24,13 @@ type Config struct {
 	Environment       string
 }
 
-// Load reads settings from the environment or assigns sane defaults
+// Load reads settings from .env and environment variables
 func Load() *Config {
+	// Auto-load .env from current directory or any parent up to 3 levels
+	loadEnvFile(".env", "../.env", "../../.env", "../../../.env", "VartaCore/.env", "../VartaCore/.env", "VartaCore/main/.env", "VartaCore/VartaCore/main/.env")
+
 	port := getEnv("PORT", "8080")
-	mysqlDSN := getEnv("MYSQL_DSN", "root:vartapass@tcp(localhost:3306)/varta?parseTime=true&charset=utf8mb4")
+	mysqlDSN := getEnv("MYSQL_DSN", "root:prince123@tcp(127.0.0.1:3306)/varta?parseTime=true&charset=utf8mb4")
 	redisAddr := getEnv("REDIS_ADDR", "localhost:6379")
 	redisPass := getEnv("REDIS_PASSWORD", "")
 	redisDBStr := getEnv("REDIS_DB", "0")
@@ -73,6 +77,33 @@ func Load() *Config {
 		GeminiAPIKey:      getEnv("GEMINI_API_KEY", ""),
 		CORSAllowedOrigin: getEnv("CORS_ALLOWED_ORIGIN", "*"),
 		Environment:       getEnv("ENV", "development"),
+	}
+}
+
+func loadEnvFile(paths ...string) {
+	for _, p := range paths {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		log.Printf("Loaded configuration from %s", p)
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				k := strings.TrimSpace(parts[0])
+				v := strings.TrimSpace(parts[1])
+				// Only set if not already present in environment
+				if _, exists := os.LookupEnv(k); !exists {
+					_ = os.Setenv(k, v)
+				}
+			}
+		}
+		break
 	}
 }
 

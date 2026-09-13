@@ -64,9 +64,9 @@ export async function register(
 export function getCurrentUser(): User | null {
   try {
     const raw = localStorage.getItem(USER_SESSION_KEY);
-    return raw ? JSON.parse(raw) : MOCK_USER; // Default to demo user for easy previewing
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return MOCK_USER;
+    return null;
   }
 }
 

@@ -100,69 +100,8 @@ var DefaultCategories = []Category{
 	{ID: "cat-community", Name: "Culture & Arts", Slug: "culture", IconName: "Palette", Description: "Inspiring arts, restored heritage, and joyful traditions", ArticleCount: 0},
 }
 
-// DefaultArticles for initial seeding
-var DefaultArticles = []Article{
-	{
-		ID:                 "art-1",
-		Title:              "Historic Milestone: Global Renewable Power Surpasses Coal for the First Time",
-		Summary:            "A breathtaking acceleration in solar and wind installations across 40 countries has permanently tipped the balance toward clean energy.",
-		Content:            "In what environmental scientists are calling the turning point of the century, clean energy generation officially overtook fossil fuel power across major grids worldwide this past quarter.",
-		Category:           "Planet & Climate",
-		CategorySlug:       "planet",
-		ImageURL:           "https://images.unsplash.com/photo-1523848309072-c199db53f137?auto=format&fit=crop&w=1000&q=80",
-		SourceName:         "Global Clean Energy Review",
-		SourceURL:          "https://example.com/energy-turning-point",
-		Author:             "Elena Rostova",
-		PublishedAt:        "2 hours ago",
-		ReadingTimeMinutes: 4,
-		PositivityScore:    99,
-		UpliftBadge:        "99% Joy Index",
-		IsFeatured:         true,
-		IsBestOfWeek:       true,
-		Status:             "published",
-		CreatedAt:          time.Now().Add(-2 * time.Hour),
-	},
-	{
-		ID:                 "art-2",
-		Title:              "Humpback Whales Make Miraculous Population Recovery, Nearing Historic Pre-Whaling Numbers",
-		Summary:            "Decades of international ocean protection treaties and acoustic tracking have culminated in one of the greatest marine conservation victories in modern memory.",
-		Content:            "Decades of patient, coordinated international treaties have borne magnificent fruit: global humpback whale populations have rebounded from near-extinction levels to more than 93% of their pre-whaling baselines.",
-		Category:           "Planet & Climate",
-		CategorySlug:       "planet",
-		ImageURL:           "https://images.unsplash.com/photo-1568430462989-44163eb1752f?auto=format&fit=crop&w=1000&q=80",
-		SourceName:         "Marine Conservation Chronicle",
-		SourceURL:          "https://example.com/whales-recovery",
-		Author:             "David Attenborough Society",
-		PublishedAt:        "4 hours ago",
-		ReadingTimeMinutes: 3,
-		PositivityScore:    97,
-		UpliftBadge:        "Conservation Triumph",
-		IsFeatured:         false,
-		IsBestOfWeek:       true,
-		Status:             "published",
-		CreatedAt:          time.Now().Add(-4 * time.Hour),
-	},
-	{
-		ID:                 "art-3",
-		Title:              "Revolutionary Non-Invasive Ultrasound Therapy Eradicates Glioblastoma Cells in Clinical Trial",
-		Summary:            "Pioneered by neuroscientists in Kyoto and Boston, targeted focused sound waves opened the blood-brain barrier with zero surgical trauma, delivering a 92% remission rate.",
-		Content:            "A multi-center medical trial combining low-intensity pulsed ultrasound with microscopic microbubbles has yielded a landmark breakthrough against previously untreatable glioblastoma tumors.",
-		Category:           "Science & Discovery",
-		CategorySlug:       "science",
-		ImageURL:           "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80",
-		SourceName:         "Annals of Breakthrough Medicine",
-		SourceURL:          "https://example.com/ultrasound-glioblastoma",
-		Author:             "Dr. Aris Thorne",
-		PublishedAt:        "6 hours ago",
-		ReadingTimeMinutes: 5,
-		PositivityScore:    98,
-		UpliftBadge:        "Medical Miracle",
-		IsFeatured:         false,
-		IsBestOfWeek:       true,
-		Status:             "published",
-		CreatedAt:          time.Now().Add(-6 * time.Hour),
-	},
-}
+// DefaultArticles for initial seeding (empty so real news always takes the lead)
+var DefaultArticles = []Article{}
 
 // NewRepository creates either a MySQL repository or resilient in-memory repository
 func NewRepository(db *sql.DB) Repository {
@@ -231,8 +170,6 @@ func (m *MemoryRepository) SeedDefaults(ctx context.Context) error {
 	if m.bookmarks[demoUser.ID] == nil {
 		m.bookmarks[demoUser.ID] = make(map[string]bool)
 	}
-	m.bookmarks[demoUser.ID]["art-1"] = true
-	m.bookmarks[demoUser.ID]["art-3"] = true
 
 	m.updateCategoryCountsLocked()
 	return nil
@@ -304,17 +241,24 @@ func (m *MemoryRepository) GetFeaturedArticle(ctx context.Context) (*Article, er
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
+	var best *Article
 	for _, a := range m.articles {
-		if a.IsFeatured {
-			copyArt := a
-			return &copyArt, nil
+		artCopy := a
+		if best == nil {
+			best = &artCopy
+			continue
+		}
+		if artCopy.IsFeatured && !best.IsFeatured {
+			best = &artCopy
+		} else if artCopy.IsFeatured == best.IsFeatured {
+			if artCopy.PositivityScore > best.PositivityScore {
+				best = &artCopy
+			} else if artCopy.PositivityScore == best.PositivityScore && artCopy.CreatedAt.After(best.CreatedAt) {
+				best = &artCopy
+			}
 		}
 	}
-	for _, a := range m.articles {
-		copyArt := a
-		return &copyArt, nil
-	}
-	return nil, nil
+	return best, nil
 }
 
 func (m *MemoryRepository) GetBestArticles(ctx context.Context, limit int) ([]Article, error) {
@@ -323,8 +267,23 @@ func (m *MemoryRepository) GetBestArticles(ctx context.Context, limit int) ([]Ar
 
 	var list []Article
 	for _, a := range m.articles {
-		if a.IsBestOfWeek {
-			list = append(list, a)
+		list = append(list, a)
+	}
+	for i := 0; i < len(list); i++ {
+		for j := i + 1; j < len(list); j++ {
+			swap := false
+			if !list[i].IsBestOfWeek && list[j].IsBestOfWeek {
+				swap = true
+			} else if list[i].IsBestOfWeek == list[j].IsBestOfWeek {
+				if list[i].PositivityScore < list[j].PositivityScore {
+					swap = true
+				} else if list[i].PositivityScore == list[j].PositivityScore && list[i].CreatedAt.Before(list[j].CreatedAt) {
+					swap = true
+				}
+			}
+			if swap {
+				list[i], list[j] = list[j], list[i]
+			}
 		}
 	}
 	if limit > 0 && len(list) > limit {
@@ -488,11 +447,19 @@ func (m *MemoryRepository) DeleteUser(ctx context.Context, userID string) error 
 // MYSQL REPOSITORY IMPLEMENTATION
 // -------------------------------------------------------------
 
+func ensureContext(ctx context.Context) context.Context {
+	if ctx == nil {
+		return context.Background()
+	}
+	return ctx
+}
+
 type MySQLRepository struct {
 	db *sql.DB
 }
 
 func (r *MySQLRepository) InitSchema(ctx context.Context) error {
+	ctx = ensureContext(ctx)
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS categories (
 			id VARCHAR(64) PRIMARY KEY,
@@ -563,10 +530,16 @@ func (r *MySQLRepository) InitSchema(ctx context.Context) error {
 			return fmt.Errorf("failed executing ddl: %w", err)
 		}
 	}
+
+	// Purge any legacy sample/dummy articles so real news always takes the lead
+	_, _ = r.db.ExecContext(ctx, "DELETE FROM articles WHERE id IN ('art-1', 'art-2', 'art-3') OR source_url LIKE '%example.com%'")
+	_, _ = r.db.ExecContext(ctx, "DELETE FROM bookmarks WHERE article_id IN ('art-1', 'art-2', 'art-3')")
+
 	return nil
 }
 
 func (r *MySQLRepository) SeedDefaults(ctx context.Context) error {
+	ctx = ensureContext(ctx)
 	for _, c := range DefaultCategories {
 		query := `INSERT INTO categories (id, name, slug, icon_name, description, article_count)
 			VALUES (?, ?, ?, ?, ?, ?)
@@ -576,9 +549,13 @@ func (r *MySQLRepository) SeedDefaults(ctx context.Context) error {
 		}
 	}
 
+	// Purge legacy sample/dummy articles so real news always takes the lead
+	_, _ = r.db.ExecContext(ctx, "DELETE FROM articles WHERE id IN ('art-1', 'art-2', 'art-3') OR source_url LIKE '%example.com%'")
+	_, _ = r.db.ExecContext(ctx, "DELETE FROM bookmarks WHERE article_id IN ('art-1', 'art-2', 'art-3')")
+
 	var count int
 	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM articles").Scan(&count)
-	if err == nil && count == 0 {
+	if err == nil && count == 0 && len(DefaultArticles) > 0 {
 		for _, a := range DefaultArticles {
 			_ = r.SaveArticle(ctx, &a)
 		}
@@ -600,7 +577,14 @@ func (r *MySQLRepository) SeedDefaults(ctx context.Context) error {
 }
 
 func (r *MySQLRepository) GetCategories(ctx context.Context) ([]Category, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT id, name, slug, icon_name, description, article_count FROM categories ORDER BY id ASC")
+	ctx = ensureContext(ctx)
+	query := `SELECT c.id, c.name, c.slug, c.icon_name, c.description,
+		CASE 
+			WHEN c.slug = 'all' THEN (SELECT COUNT(*) FROM articles)
+			ELSE (SELECT COUNT(*) FROM articles a WHERE a.category_slug = c.slug)
+		END as live_count
+		FROM categories c ORDER BY c.id ASC`
+	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -618,6 +602,7 @@ func (r *MySQLRepository) GetCategories(ctx context.Context) ([]Category, error)
 }
 
 func (r *MySQLRepository) GetArticles(ctx context.Context, categorySlug, search string, limit, offset int) ([]Article, error) {
+	ctx = ensureContext(ctx)
 	whereClauses := []string{"1=1"}
 	args := []any{}
 
@@ -659,18 +644,13 @@ func (r *MySQLRepository) GetArticles(ctx context.Context, categorySlug, search 
 }
 
 func (r *MySQLRepository) GetFeaturedArticle(ctx context.Context) (*Article, error) {
+	ctx = ensureContext(ctx)
 	var a Article
 	query := `SELECT id, title, summary, content, category, category_slug, image_url, source_name, source_url, author, published_at, reading_time_minutes, positivity_score, uplift_badge, is_featured, is_best_of_week, created_at 
 		FROM articles 
-		WHERE is_featured = TRUE 
-		ORDER BY created_at DESC 
+		ORDER BY is_featured DESC, positivity_score DESC, created_at DESC 
 		LIMIT 1`
 	err := r.db.QueryRowContext(ctx, query).Scan(&a.ID, &a.Title, &a.Summary, &a.Content, &a.Category, &a.CategorySlug, &a.ImageURL, &a.SourceName, &a.SourceURL, &a.Author, &a.PublishedAt, &a.ReadingTimeMinutes, &a.PositivityScore, &a.UpliftBadge, &a.IsFeatured, &a.IsBestOfWeek, &a.CreatedAt)
-	if err == sql.ErrNoRows {
-		fallbackQuery := `SELECT id, title, summary, content, category, category_slug, image_url, source_name, source_url, author, published_at, reading_time_minutes, positivity_score, uplift_badge, is_featured, is_best_of_week, created_at 
-			FROM articles ORDER BY created_at DESC LIMIT 1`
-		err = r.db.QueryRowContext(ctx, fallbackQuery).Scan(&a.ID, &a.Title, &a.Summary, &a.Content, &a.Category, &a.CategorySlug, &a.ImageURL, &a.SourceName, &a.SourceURL, &a.Author, &a.PublishedAt, &a.ReadingTimeMinutes, &a.PositivityScore, &a.UpliftBadge, &a.IsFeatured, &a.IsBestOfWeek, &a.CreatedAt)
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -678,13 +658,13 @@ func (r *MySQLRepository) GetFeaturedArticle(ctx context.Context) (*Article, err
 }
 
 func (r *MySQLRepository) GetBestArticles(ctx context.Context, limit int) ([]Article, error) {
+	ctx = ensureContext(ctx)
 	if limit <= 0 {
 		limit = 10
 	}
 	query := `SELECT id, title, summary, content, category, category_slug, image_url, source_name, source_url, author, published_at, reading_time_minutes, positivity_score, uplift_badge, is_featured, is_best_of_week, created_at 
 		FROM articles 
-		WHERE is_best_of_week = TRUE 
-		ORDER BY positivity_score DESC, created_at DESC 
+		ORDER BY is_best_of_week DESC, positivity_score DESC, created_at DESC 
 		LIMIT ?`
 	rows, err := r.db.QueryContext(ctx, query, limit)
 	if err != nil {
@@ -704,6 +684,7 @@ func (r *MySQLRepository) GetBestArticles(ctx context.Context, limit int) ([]Art
 }
 
 func (r *MySQLRepository) GetArticleByID(ctx context.Context, id string) (*Article, error) {
+	ctx = ensureContext(ctx)
 	var a Article
 	query := `SELECT id, title, summary, content, category, category_slug, image_url, source_name, source_url, author, published_at, reading_time_minutes, positivity_score, uplift_badge, is_featured, is_best_of_week, created_at 
 		FROM articles 
@@ -716,6 +697,7 @@ func (r *MySQLRepository) GetArticleByID(ctx context.Context, id string) (*Artic
 }
 
 func (r *MySQLRepository) SaveArticle(ctx context.Context, a *Article) error {
+	ctx = ensureContext(ctx)
 	if a.ID == "" {
 		a.ID = common.GenerateID("art-")
 	}
@@ -732,6 +714,7 @@ func (r *MySQLRepository) SaveArticle(ctx context.Context, a *Article) error {
 }
 
 func (r *MySQLRepository) ArticleExistsByUrlOrTitle(ctx context.Context, url, title string) (bool, error) {
+	ctx = ensureContext(ctx)
 	var count int
 	query := "SELECT COUNT(*) FROM articles WHERE source_url = ? OR title = ?"
 	err := r.db.QueryRowContext(ctx, query, url, title).Scan(&count)
@@ -739,6 +722,7 @@ func (r *MySQLRepository) ArticleExistsByUrlOrTitle(ctx context.Context, url, ti
 }
 
 func (r *MySQLRepository) ToggleBookmark(ctx context.Context, userID, articleID string) (bool, error) {
+	ctx = ensureContext(ctx)
 	var count int
 	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM bookmarks WHERE user_id = ? AND article_id = ?", userID, articleID).Scan(&count)
 	if err != nil {
@@ -753,6 +737,7 @@ func (r *MySQLRepository) ToggleBookmark(ctx context.Context, userID, articleID 
 }
 
 func (r *MySQLRepository) GetUserBookmarks(ctx context.Context, userID string) ([]string, error) {
+	ctx = ensureContext(ctx)
 	rows, err := r.db.QueryContext(ctx, "SELECT article_id FROM bookmarks WHERE user_id = ?", userID)
 	if err != nil {
 		return nil, err
@@ -771,6 +756,7 @@ func (r *MySQLRepository) GetUserBookmarks(ctx context.Context, userID string) (
 }
 
 func (r *MySQLRepository) CreateUser(ctx context.Context, u *User) error {
+	ctx = ensureContext(ctx)
 	if u.ID == "" {
 		u.ID = common.GenerateID("usr-")
 	}
@@ -791,6 +777,7 @@ func (r *MySQLRepository) CreateUser(ctx context.Context, u *User) error {
 }
 
 func (r *MySQLRepository) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	ctx = ensureContext(ctx)
 	var u User
 	query := `SELECT id, name, email, password_hash, avatar_url, created_at FROM users WHERE email = ?`
 	err := r.db.QueryRowContext(ctx, query, email).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.CreatedAt)
@@ -801,6 +788,7 @@ func (r *MySQLRepository) GetUserByEmail(ctx context.Context, email string) (*Us
 }
 
 func (r *MySQLRepository) GetUserByID(ctx context.Context, id string) (*User, error) {
+	ctx = ensureContext(ctx)
 	var u User
 	query := `SELECT id, name, email, password_hash, avatar_url, created_at FROM users WHERE id = ?`
 	err := r.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.CreatedAt)
@@ -811,6 +799,7 @@ func (r *MySQLRepository) GetUserByID(ctx context.Context, id string) (*User, er
 }
 
 func (r *MySQLRepository) GetUserPreferences(ctx context.Context, userID string) (*UserPreferences, error) {
+	ctx = ensureContext(ctx)
 	var (
 		favJSON string
 		p       UserPreferences
@@ -830,6 +819,7 @@ func (r *MySQLRepository) GetUserPreferences(ctx context.Context, userID string)
 }
 
 func (r *MySQLRepository) UpdateUserPreferences(ctx context.Context, userID string, prefs *UserPreferences) error {
+	ctx = ensureContext(ctx)
 	favJSON, _ := json.Marshal(prefs.FavoriteCategories)
 	query := `INSERT INTO user_preferences 
 		(user_id, favorite_categories, positivity_threshold, daily_digest_email, breaking_good_news_alerts, reading_layout, quote_of_the_day)
@@ -846,6 +836,7 @@ func (r *MySQLRepository) UpdateUserPreferences(ctx context.Context, userID stri
 }
 
 func (r *MySQLRepository) DeleteUser(ctx context.Context, userID string) error {
+	ctx = ensureContext(ctx)
 	_, err := r.db.ExecContext(ctx, "DELETE FROM users WHERE id = ?", userID)
 	return err
 }
