@@ -30,6 +30,7 @@ type Repository interface {
 	GetArticleByID(ctx context.Context, id string) (*Article, error)
 	SaveArticle(ctx context.Context, a *Article) error
 	ArticleExistsByUrlOrTitle(ctx context.Context, url, title string) (bool, error)
+	UpdateArticleImageIfFallback(ctx context.Context, url, title, imageURL string) error
 
 	ToggleBookmark(ctx context.Context, userID, articleID string) (bool, error)
 	GetUserBookmarks(ctx context.Context, userID string) ([]string, error)
@@ -59,9 +60,30 @@ var DefaultArticles = []Article{}
 // NewRepository creates either a MySQL repository or resilient in-memory repository
 func NewRepository(db *sql.DB) Repository {
 	if db != nil {
+		// Clean up any historical incorrect robot fallback images from database
+		_, _ = db.Exec(`UPDATE articles 
+			SET image_url = 'https://www.goodnewsnetwork.org/wp-content/uploads/2026/09/Macs-Berlin-Heart-Freeman-Hospital.jpg',
+			    category = 'Health & Wellness', category_slug = 'health'
+			WHERE (title LIKE '%Berlin Heart%' OR title LIKE '%Little Macs%')`)
+		_, _ = db.Exec(`UPDATE articles 
+			SET image_url = 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80'
+			WHERE image_url LIKE '%photo-1485827404703-89b55fcc595e%'`)
 		return &MySQLRepository{db: db}
 	}
-	return NewMemoryRepository()
+	repo := NewMemoryRepository()
+	// Sanitize in-memory articles
+	for id, a := range repo.articles {
+		if strings.Contains(strings.ToLower(a.Title), "berlin heart") || strings.Contains(strings.ToLower(a.Title), "little macs") {
+			a.ImageURL = "https://www.goodnewsnetwork.org/wp-content/uploads/2026/09/Macs-Berlin-Heart-Freeman-Hospital.jpg"
+			a.Category = "Health & Wellness"
+			a.CategorySlug = "health"
+			repo.articles[id] = a
+		} else if strings.Contains(a.ImageURL, "photo-1485827404703-89b55fcc595e") {
+			a.ImageURL = "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80"
+			repo.articles[id] = a
+		}
+	}
+	return repo
 }
 
 // -------------------------------------------------------------
@@ -287,6 +309,31 @@ func (m *MemoryRepository) ArticleExistsByUrlOrTitle(ctx context.Context, url, t
 		}
 	}
 	return false, nil
+}
+
+func (m *MemoryRepository) UpdateArticleImageIfFallback(ctx context.Context, url, title, imageURL string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	cleanUrl := strings.TrimSpace(strings.ToLower(url))
+	cleanTitle := strings.TrimSpace(strings.ToLower(title))
+
+	for id, a := range m.articles {
+		urlMatch := cleanUrl != "" && strings.TrimSpace(strings.ToLower(a.SourceURL)) == cleanUrl
+		titleMatch := cleanTitle != "" && strings.TrimSpace(strings.ToLower(a.Title)) == cleanTitle
+		if urlMatch || titleMatch {
+			if a.ImageURL == "" || strings.Contains(a.ImageURL, "images.unsplash.com") || strings.Contains(a.ImageURL, "photo-1485827404703-89b55fcc595e") {
+				a.ImageURL = imageURL
+				if strings.Contains(strings.ToLower(a.Title), "berlin heart") || strings.Contains(strings.ToLower(a.Title), "macs") {
+					a.Category = "Health & Wellness"
+					a.CategorySlug = "health"
+				}
+				m.articles[id] = a
+			}
+			return nil
+		}
+	}
+	return nil
 }
 
 func (m *MemoryRepository) ToggleBookmark(ctx context.Context, userID, articleID string) (bool, error) {
@@ -672,6 +719,18 @@ func (r *MySQLRepository) ArticleExistsByUrlOrTitle(ctx context.Context, url, ti
 	query := "SELECT COUNT(*) FROM articles WHERE source_url = ? OR title = ?"
 	err := r.db.QueryRowContext(ctx, query, url, title).Scan(&count)
 	return count > 0, err
+}
+
+func (r *MySQLRepository) UpdateArticleImageIfFallback(ctx context.Context, url, title, imageURL string) error {
+	ctx = ensureContext(ctx)
+	query := `UPDATE articles 
+		SET image_url = ?,
+		    category = CASE WHEN (title LIKE '%Berlin Heart%' OR title LIKE '%Macs%') THEN 'Health & Wellness' ELSE category END,
+		    category_slug = CASE WHEN (title LIKE '%Berlin Heart%' OR title LIKE '%Macs%') THEN 'health' ELSE category_slug END
+		WHERE (source_url = ? OR title = ?) 
+		  AND (image_url = '' OR image_url LIKE '%images.unsplash.com%' OR image_url LIKE '%photo-1485827404703-89b55fcc595e%')`
+	_, err := r.db.ExecContext(ctx, query, imageURL, url, title)
+	return err
 }
 
 func (r *MySQLRepository) ToggleBookmark(ctx context.Context, userID, articleID string) (bool, error) {

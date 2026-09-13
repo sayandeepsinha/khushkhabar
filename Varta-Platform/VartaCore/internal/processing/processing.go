@@ -50,6 +50,7 @@ var categoryFallbackImages = map[string][]string{
 	"innovation": {
 		"https://images.unsplash.com/photo-1544376798-89aa6b82c6cd?auto=format&fit=crop&w=1000&q=80",
 		"https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1000&q=80",
+		"https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1000&q=80",
 	},
 	"culture": {
 		"https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1000&q=80",
@@ -70,6 +71,8 @@ var categoryKeywords = map[string][]string{
 	"health": {
 		"vaccine", "cancer", "therapy", "clinical trial", "remission", "cure", "medicine", "health", "hospital",
 		"disease", "treatment", "cardio", "mental health", "wellness", "diet", "longevity", "immune",
+		"heart", "transplant", "organ", "patient", "surgery", "doctor", "pediatric", "child", "children",
+		"baby", "infant", "device", "survival", "rehabilitation", "berlin heart", "saving lives", "medical",
 	},
 	"innovation": {
 		"technology", "bionic", "ai", "artificial intelligence", "robot", "hardware", "open-source", "desalination",
@@ -171,7 +174,9 @@ func ScorePositivity(title, text string, sourceName string) (score int, badge st
 // ResolveImage ensures an image URL exists or selects a curated category fallback
 func ResolveImage(givenUrl, categorySlug string) string {
 	if givenUrl != "" && (strings.HasPrefix(givenUrl, "http://") || strings.HasPrefix(givenUrl, "https://")) {
-		return givenUrl
+		if !strings.Contains(givenUrl, "photo-1485827404703-89b55fcc595e") {
+			return givenUrl
+		}
 	}
 	fallbacks, ok := categoryFallbackImages[categorySlug]
 	if !ok || len(fallbacks) == 0 {

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { 
   Sparkles, 
-  Quote, 
   Newspaper, 
-  RefreshCw 
+  RefreshCw,
+  Bookmark
 } from 'lucide-react';
 import type { Article, Category } from '../api/types';
 import { 
@@ -13,9 +13,9 @@ import {
   getCategories, 
   toggleBookmarkArticle 
 } from '../api/news';
-import { MOCK_DAILY_QUOTE } from '../api/mockData';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
+import { PositivityRadar } from '../components/news/PositivityRadar';
 import { HeroArticle } from '../components/news/HeroArticle';
 import { BestNewsSection } from '../components/news/BestNewsSection';
 import { CategoryBar } from '../components/news/CategoryBar';
@@ -32,6 +32,7 @@ export const HomePage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+  const [showBookmarksOnly, setShowBookmarksOnly] = useState<boolean>(false);
 
   // Load initial global data (Featured, Best News, Categories)
   useEffect(() => {
@@ -77,7 +78,7 @@ export const HomePage = () => {
 
   const handleToggleBookmark = async (articleId: string) => {
     if (!currentUser) {
-      openAuthModal("Sign in to bookmark this story and save it to your personal reading list.");
+      openAuthModal("Sign in to save this story to your personal Varta reading list.");
       return;
     }
 
@@ -101,46 +102,57 @@ export const HomePage = () => {
     );
   };
 
+  // Filtered stories if user clicked "Saved List"
+  const displayedArticles = showBookmarksOnly
+    ? latestArticles.filter((a) => a.bookmarked)
+    : latestArticles;
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#FBF9F5]">
-      <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+    <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
+      <Navbar 
+        searchQuery={searchQuery} 
+        onSearchChange={setSearchQuery} 
+        onToggleBookmarksFilter={() => setShowBookmarksOnly(!showBookmarksOnly)}
+        showingBookmarksOnly={showBookmarksOnly}
+      />
 
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 w-full">
-        
-        {/* Daily Inspiration / Quote of the Day Banner */}
-        <section className="mb-10 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-amber-100/60 via-amber-50 to-white border border-amber-200/70 shadow-xs">
-          <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
-            <div className="flex items-center space-x-3.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0">
-                <Quote className="w-5 h-5 fill-amber-700/20" />
-              </div>
-              <div>
-                <p className="font-serif-editorial text-base sm:text-lg italic text-slate-800 font-medium">
-                  "{MOCK_DAILY_QUOTE.quote}"
-                </p>
-                <p className="text-xs text-amber-900/80 font-semibold tracking-wide uppercase mt-0.5">
-                  — {MOCK_DAILY_QUOTE.author} • {MOCK_DAILY_QUOTE.category}
-                </p>
-              </div>
-            </div>
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 w-full">
+        {/* Editorial Positivity Radar & Briefing */}
+        <PositivityRadar
+          onSelectMoodFilter={(filter) => {
+            setShowBookmarksOnly(false);
+            setSearchQuery(filter);
+          }}
+          activeFilter={searchQuery}
+          totalArticlesCount={latestArticles.length + (featuredArticle ? 1 : 0)}
+        />
 
-            <div className="hidden lg:flex items-center space-x-2 text-xs text-slate-500 bg-white/80 px-3 py-1.5 rounded-full border border-amber-200/50">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Restoring your faith in humanity, one story at a time.</span>
+        {/* Saved List Active Notice */}
+        {showBookmarksOnly && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-50/80 border border-amber-300 flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-amber-900">
+              <Bookmark className="w-4 h-4 fill-amber-600 text-amber-600" />
+              <span className="text-sm font-bold">Personal Reading List ({displayedArticles.length} stories)</span>
             </div>
+            <button
+              onClick={() => setShowBookmarksOnly(false)}
+              className="text-xs font-bold text-amber-900 hover:underline cursor-pointer"
+            >
+              Show All Stories
+            </button>
           </div>
-        </section>
+        )}
 
-        {/* Featured Story (Hero) */}
-        {!searchQuery && selectedCategory === 'all' && featuredArticle && (
+        {/* Featured Story (Lead Story) - Only shown on default homepage */}
+        {!searchQuery && !showBookmarksOnly && selectedCategory === 'all' && featuredArticle && (
           <HeroArticle
             article={featuredArticle}
             onToggleBookmark={handleToggleBookmark}
           />
         )}
 
-        {/* Best of the Week Spotlight */}
-        {!searchQuery && selectedCategory === 'all' && bestArticles.length > 0 && (
+        {/* Best of the Week Spotlight - Only shown on default homepage */}
+        {!searchQuery && !showBookmarksOnly && selectedCategory === 'all' && bestArticles.length > 0 && (
           <BestNewsSection
             articles={bestArticles}
             onToggleBookmark={handleToggleBookmark}
@@ -148,59 +160,74 @@ export const HomePage = () => {
         )}
 
         {/* Category Filter Bar */}
-        <CategoryBar
-          categories={categories}
-          selectedCategorySlug={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-        />
+        {!showBookmarksOnly && (
+          <CategoryBar
+            categories={categories}
+            selectedCategorySlug={selectedCategory}
+            onSelectCategory={(slug) => {
+              setSelectedCategory(slug);
+              setSearchQuery('');
+            }}
+          />
+        )}
 
         {/* Latest News Feed Header */}
-        <div className="flex items-center justify-between mb-6 pb-3 border-b border-[#E7DFD2]">
+        <div className="flex items-center justify-between mb-6 pb-3 border-b border-[#EAE5DC]">
           <div className="flex items-center space-x-2.5">
-            <Newspaper className="w-5 h-5 text-amber-700" />
-            <h2 className="font-serif-editorial text-2xl font-bold text-slate-900 tracking-tight">
-              {searchQuery
-                ? `Search Results for "${searchQuery}"`
-                : selectedCategory === 'all'
-                ? 'Latest Positive Stories'
-                : `${categories.find((c) => c.slug === selectedCategory)?.name || 'Filtered Stories'}`}
-            </h2>
+            <div className="w-8 h-8 rounded-lg bg-stone-100 text-slate-800 flex items-center justify-center border border-stone-200">
+              <Newspaper className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="font-serif-editorial text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                {showBookmarksOnly
+                  ? 'Your Saved Stories'
+                  : searchQuery
+                  ? `Search Dispatches for "${searchQuery}"`
+                  : selectedCategory === 'all'
+                  ? 'Latest Positive Stories'
+                  : `${categories.find((c) => c.slug === selectedCategory)?.name || 'Filtered Stories'}`}
+              </h2>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2 text-xs text-slate-500">
-            <span className="font-medium text-slate-700">{latestArticles.length}</span>
-            <span>stories curated</span>
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="font-semibold text-slate-600 bg-stone-100 px-2.5 py-1 rounded-md border border-stone-200">
+              {displayedArticles.length} dispatches
+            </span>
           </div>
         </div>
 
         {/* Articles Feed */}
         {loading ? (
           <div className="py-20 text-center text-slate-500">
-            <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-amber-500" />
-            <p className="font-medium">Fetching uplifting stories...</p>
+            <RefreshCw className="w-6 h-6 text-blue-600 animate-spin mx-auto mb-3" />
+            <p className="font-bold text-slate-700 text-sm">Curating constructive dispatches...</p>
           </div>
-        ) : latestArticles.length === 0 ? (
-          <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-[#DDD5C7] p-8">
-            <Sparkles className="w-10 h-10 mx-auto text-amber-400 mb-3" />
+        ) : displayedArticles.length === 0 ? (
+          <div className="py-16 text-center bg-white rounded-2xl border border-stone-200 p-8 max-w-lg mx-auto mb-16 shadow-2xs">
+            <Sparkles className="w-8 h-8 text-amber-500 mx-auto mb-3" />
             <h3 className="font-serif-editorial text-xl font-bold text-slate-800 mb-1">
-              No matching positive stories found
+              {showBookmarksOnly ? 'Your reading list is empty' : 'No matching stories found'}
             </h3>
-            <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">
-              Try adjusting your search query or switching to another uplifting topic category.
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-4 font-sans-body">
+              {showBookmarksOnly
+                ? 'Save any article by tapping the bookmark icon to review it here later.'
+                : 'Try adjusting your search terms or select another category above.'}
             </p>
             <button
               onClick={() => {
                 setSelectedCategory('all');
                 setSearchQuery('');
+                setShowBookmarksOnly(false);
               }}
-              className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-amber-700 transition-colors"
+              className="px-4 py-2 bg-slate-900 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
             >
               Reset Filters
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {latestArticles.map((article) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {displayedArticles.map((article) => (
               <ArticleCard
                 key={article.id}
                 article={article}

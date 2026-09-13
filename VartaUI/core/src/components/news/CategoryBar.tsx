@@ -5,7 +5,8 @@ import {
   HeartHandshake, 
   Activity, 
   Cpu, 
-  Palette 
+  Palette,
+  Compass
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { Category } from '../../api/types';
@@ -24,6 +25,7 @@ const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   Activity,
   Cpu,
   Palette,
+  Compass,
 };
 
 export const CategoryBar = ({
@@ -32,13 +34,16 @@ export const CategoryBar = ({
   onSelectCategory,
 }: CategoryBarProps) => {
   return (
-    <div className="mb-10">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-          Filter by Uplifting Topic
-        </h3>
-        <span className="text-xs text-slate-400">
-          Showing curated solutions & progress
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center gap-2">
+          <Compass className="w-3.5 h-3.5 text-blue-700" />
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+            Departments & Topics
+          </h3>
+        </div>
+        <span className="text-[11px] text-slate-400 hidden sm:inline font-serif-editorial italic">
+          Filtered by constructive solutions & progress
         </span>
       </div>
 
@@ -51,24 +56,24 @@ export const CategoryBar = ({
             <button
               key={cat.id}
               onClick={() => onSelectCategory(cat.slug)}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
+              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer ${
                 isSelected
-                  ? 'bg-slate-900 text-amber-300 shadow-md shadow-slate-900/10 scale-102'
-                  : 'bg-white hover:bg-amber-50/60 text-slate-700 hover:text-slate-900 border border-[#E7DFD2]'
+                  ? 'bg-blue-700 text-white font-bold shadow-xs'
+                  : 'bg-white hover:bg-stone-50 text-slate-700 hover:text-slate-900 border border-stone-200 shadow-2xs'
               }`}
             >
               <IconComponent
-                className={`w-4 h-4 ${
-                  isSelected ? 'text-amber-400' : 'text-slate-400'
+                className={`w-3.5 h-3.5 ${
+                  isSelected ? 'text-amber-300' : 'text-slate-400'
                 }`}
               />
               <span>{cat.name}</span>
-              {cat.articleCount && (
+              {cat.articleCount !== undefined && cat.articleCount > 0 && (
                 <span
-                  className={`ml-1 text-[11px] px-1.5 py-0.2 rounded-full font-mono ${
+                  className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
                     isSelected
-                      ? 'bg-slate-800 text-amber-200'
-                      : 'bg-slate-100 text-slate-500'
+                      ? 'bg-blue-800 text-blue-100'
+                      : 'bg-stone-100 text-slate-500'
                   }`}
                 >
                   {cat.articleCount}

@@ -8,21 +8,29 @@ import {
   LogOut, 
   Sparkles,
   Menu,
-  X
+  X,
+  Bookmark
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface NavbarProps {
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  onToggleBookmarksFilter?: () => void;
+  showingBookmarksOnly?: boolean;
 }
 
-export const Navbar = ({ searchQuery = '', onSearchChange }: NavbarProps) => {
+export const Navbar = ({ 
+  searchQuery = '', 
+  onSearchChange,
+  onToggleBookmarksFilter,
+  showingBookmarksOnly = false
+}: NavbarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const { currentUser, logout, openAuthModal } = useAuth();
+  const { currentUser, logout, openAuthModal, positivityStreak } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -33,53 +41,55 @@ export const Navbar = ({ searchQuery = '', onSearchChange }: NavbarProps) => {
   const isCurrent = (path: string) => location.pathname === path;
 
   return (
-    <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E7E0D3] shadow-xs">
-      {/* Top Uplifting Ticker */}
-      <div className="bg-[#1E293B] text-[#FEF3C7] text-xs py-1.5 px-4">
+    <header className="sticky top-0 z-40 glass-editorial-header">
+      
+      {/* Editorial Top Wire */}
+      <div className="bg-[#0F172A] text-slate-300 text-[11px] py-1.5 px-4 tracking-wider">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center justify-center w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-medium tracking-wide">TODAY'S UPLIFT:</span>
-            <span className="text-slate-300 hidden sm:inline">
-              Continuous positive breakthroughs published worldwide • 0% doom, 100% human progress
+          <div className="flex items-center space-x-2.5">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-bold text-amber-400 uppercase text-[10px] tracking-widest">
+              Varta Daily Wire
             </span>
-            <span className="text-slate-300 sm:hidden">
-              Real-time positive breakthroughs
+            <span className="text-slate-400 hidden sm:inline">
+              Global scientific leaps, climate recoveries & human ingenuity • Verified Constructive Journalism
             </span>
           </div>
-          <div className="flex items-center space-x-4 text-xs text-amber-200">
-            <span className="hidden md:inline font-mono">EDITION: GLOBAL ENGLISH</span>
-            <span className="text-slate-400">|</span>
-            <span className="font-medium text-amber-300">Varta Daily</span>
+          <div className="flex items-center space-x-3 text-slate-300">
+            <span className="hidden md:inline font-mono text-[10px] text-amber-300">EST. 2026</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-emerald-400 font-semibold text-[10px]">
+              0% DOOMSCROLL • 100% EVIDENCE
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Main Brand & Navigation Bar */}
+      {/* Main Masthead Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
-          {/* Logo */}
+          {/* Varta Brand Logo */}
           <Link to="/" className="flex items-center space-x-3 group text-decoration-none">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform duration-200">
-              <Sun className="w-7 h-7 text-white stroke-[2.2]" />
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-amber-400/50 p-1 flex items-center justify-center shadow-xs group-hover:border-amber-400 transition-colors">
+              <Sun className="w-5 h-5 text-amber-400 fill-amber-400/80 stroke-[2]" />
             </div>
             <div>
-              <div className="flex items-center space-x-1.5">
-                <span className="font-serif-editorial text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 group-hover:text-amber-700 transition-colors">
+              <div className="flex items-baseline space-x-2">
+                <span className="font-serif-editorial text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 group-hover:text-amber-800 transition-colors">
                   Varta
                 </span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300/60 uppercase tracking-wider">
-                  Positive
+                <span className="text-[10px] uppercase font-bold tracking-widest text-amber-800 bg-amber-100/80 border border-amber-300/80 px-2 py-0.5 rounded-md">
+                  Journal
                 </span>
               </div>
-              <p className="text-[11px] font-medium tracking-wide text-slate-500 uppercase">
-                The Uplifting News Journal
+              <p className="text-[10px] font-semibold tracking-widest text-slate-500 uppercase">
+                The Uplifting News Publication
               </p>
             </div>
           </Link>
 
-          {/* Search Bar (Desktop) */}
+          {/* Minimalist Editorial Search */}
           <div className="hidden lg:flex items-center flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -87,96 +97,126 @@ export const Navbar = ({ searchQuery = '', onSearchChange }: NavbarProps) => {
               </div>
               <input
                 type="text"
-                placeholder="Search inspiring stories, science, kindness..."
+                placeholder="Search breakthroughs, medicine, climate..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white/80 border border-[#E3DBD0] rounded-full text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all shadow-2xs"
+                className="w-full pl-10 pr-12 py-2 bg-white/90 border border-stone-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 transition-all shadow-2xs"
               />
-              {searchQuery && (
+              {searchQuery ? (
                 <button 
                   onClick={() => onSearchChange?.('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs text-slate-400 hover:text-slate-600 font-medium cursor-pointer"
                 >
                   Clear
                 </button>
+              ) : (
+                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none">
+                  <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-stone-100 border border-stone-200 rounded">
+                    /
+                  </kbd>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center space-x-2">
             <Link
               to="/"
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isCurrent('/') 
-                  ? 'text-amber-800 bg-amber-50/80 font-semibold' 
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                isCurrent('/') && !showingBookmarksOnly
+                  ? 'text-blue-700 bg-blue-50/90 font-bold border border-blue-200/80' 
                   : 'text-slate-700 hover:text-slate-900 hover:bg-black/5'
               }`}
             >
-              Stories
+              Latest Edition
             </Link>
-            
+
+            {/* Bookmarks Toggle Filter */}
+            {onToggleBookmarksFilter && (
+              <button
+                onClick={onToggleBookmarksFilter}
+                className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                  showingBookmarksOnly
+                    ? 'text-amber-900 bg-amber-100/90 border border-amber-300 font-bold'
+                    : 'text-slate-700 hover:text-slate-900 hover:bg-black/5'
+                }`}
+              >
+                <Bookmark className={`w-3.5 h-3.5 ${showingBookmarksOnly ? 'fill-amber-600 text-amber-600' : 'text-slate-400'}`} />
+                <span>Reading List</span>
+              </button>
+            )}
+
             <a
               href="#best-news"
-              className="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-black/5 transition-colors flex items-center space-x-1"
+              className="px-3.5 py-1.5 rounded-lg text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-black/5 transition-all flex items-center space-x-1"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Best News</span>
+              <span>Curated Best</span>
             </a>
 
             <Link
               to="/preferences"
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center space-x-1.5 ${
                 isCurrent('/preferences') || isCurrent('/settings')
-                  ? 'text-amber-800 bg-amber-50/80 font-semibold'
+                  ? 'text-blue-700 bg-blue-50/90 font-bold border border-blue-200/80'
                   : 'text-slate-700 hover:text-slate-900 hover:bg-black/5'
               }`}
             >
-              <Sliders className="w-3.5 h-3.5 text-slate-500" />
+              <Sliders className="w-3.5 h-3.5 text-slate-400" />
               <span>Preferences</span>
             </Link>
 
+            {/* Streak Badge with Subtle Gold Accent */}
+            <div className="hidden lg:flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-300 text-xs font-bold text-amber-900">
+              <span>🔥</span>
+              <span>{positivityStreak}d Habit</span>
+            </div>
+
             {/* Auth / Account Profile */}
             {currentUser ? (
-              <div className="relative ml-3">
+              <div className="relative ml-2">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center space-x-2 p-1.5 rounded-full hover:ring-2 hover:ring-amber-400 transition-all"
+                  className="flex items-center space-x-2 p-1 rounded-full hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer"
                   aria-label="User profile menu"
                 >
                   <img
                     src={currentUser.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"}
                     alt={currentUser.name}
-                    className="w-9 h-9 rounded-full object-cover border border-amber-300"
+                    className="w-8 h-8 rounded-full object-cover border border-amber-400/80"
                   />
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#E7E0D3] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{currentUser.name}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-4 py-2.5 border-b border-stone-100 bg-stone-50/60">
+                      <p className="text-sm font-bold text-slate-900 truncate">{currentUser.name}</p>
                       <p className="text-xs text-slate-500 truncate">{currentUser.email}</p>
+                      <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                        <span>✨ Positive Contributor</span>
+                      </div>
                     </div>
                     <Link
                       to="/preferences"
                       onClick={() => setUserDropdownOpen(false)}
-                      className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-900"
+                      className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-900 transition-colors"
                     >
-                      <Sliders className="w-4 h-4 mr-2.5 text-slate-400" />
-                      Content Preferences
+                      <Sliders className="w-4 h-4 mr-2.5 text-blue-600" />
+                      Topic & Scoring Controls
                     </Link>
                     <Link
                       to="/delete-account"
                       onClick={() => setUserDropdownOpen(false)}
-                      className="flex items-center px-4 py-2 text-sm text-rose-600 hover:bg-rose-50"
+                      className="flex items-center px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
                     >
                       <User className="w-4 h-4 mr-2.5 text-rose-500" />
-                      Account & Data
+                      Account & Privacy
                     </Link>
-                    <div className="border-t border-slate-100 my-1"></div>
+                    <div className="border-t border-stone-100 my-1"></div>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4 mr-2.5 text-slate-400" />
                       Sign Out
@@ -187,85 +227,95 @@ export const Navbar = ({ searchQuery = '', onSearchChange }: NavbarProps) => {
             ) : (
               <button
                 onClick={() => openAuthModal()}
-                className="ml-2 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-amber-700 transition-colors shadow-xs cursor-pointer"
+                className="ml-2 inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-bold text-white bg-slate-900 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
               >
                 Sign In
               </button>
             )}
           </nav>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile menu button */}
           <div className="flex md:hidden items-center space-x-2">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-700 hover:bg-black/5"
+              className="p-2 rounded-lg text-slate-700 hover:bg-black/5 focus:outline-none cursor-pointer"
+              aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
 
         </div>
-
-        {/* Mobile Search & Menu dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-[#E7E0D3] space-y-3">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search positive stories..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange?.(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-white border border-[#E3DBD0] rounded-lg text-sm"
-              />
-            </div>
-            <div className="flex flex-col space-y-1">
-              <Link
-                to="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-md text-slate-800 font-medium hover:bg-amber-50"
-              >
-                All Stories
-              </Link>
-              <Link
-                to="/preferences"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-md text-slate-800 font-medium hover:bg-amber-50"
-              >
-                Preferences
-              </Link>
-              <Link
-                to="/delete-account"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-md text-rose-600 font-medium hover:bg-rose-50"
-              >
-                Delete Account
-              </Link>
-              {currentUser ? (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="text-left px-3 py-2 text-slate-600 font-medium hover:bg-slate-100"
-                >
-                  Sign Out ({currentUser.name})
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    openAuthModal();
-                  }}
-                  className="w-full text-left px-3 py-2 text-amber-700 font-medium hover:bg-amber-50 rounded-md"
-                >
-                  Sign In / Register
-                </button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Mobile Drawer Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white border-t border-stone-200 px-4 pt-3 pb-6 space-y-2.5 shadow-lg">
+          <div className="relative mb-3">
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search Varta stories..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-stone-50 rounded-lg border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
+
+          <Link
+            to="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-lg font-semibold text-slate-800 hover:bg-blue-50"
+          >
+            All Stories
+          </Link>
+
+          {onToggleBookmarksFilter && (
+            <button
+              onClick={() => {
+                onToggleBookmarksFilter();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 rounded-lg font-semibold text-slate-800 hover:bg-amber-50 flex items-center gap-2 cursor-pointer"
+            >
+              <Bookmark className="w-4 h-4 text-amber-600" />
+              <span>{showingBookmarksOnly ? 'Show All Stories' : 'Reading List'}</span>
+            </button>
+          )}
+
+          <Link
+            to="/preferences"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-lg font-semibold text-slate-800 hover:bg-blue-50"
+          >
+            Preferences
+          </Link>
+
+          {currentUser ? (
+            <button
+              onClick={() => {
+                handleLogout();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 rounded-lg font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out ({currentUser.name})</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                openAuthModal();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full mt-2 py-2.5 rounded-lg font-bold text-white bg-slate-900 hover:bg-blue-700 text-center cursor-pointer"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
+      )}
+
     </header>
   );
 };

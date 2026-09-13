@@ -1,7 +1,7 @@
 // API Client Configuration with Go Backend Support and Mock Fallback
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'; // Defaults to true until backend is active
+export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'; // Defaults to false: always use real backend API
 
 const TOKEN_KEY = 'varta_auth_token';
 

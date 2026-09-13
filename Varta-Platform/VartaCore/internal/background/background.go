@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,6 +17,12 @@ import (
 	"vartacore/VartaCore/internal/processing"
 	"vartacore/shared/common"
 	"vartacore/shared/logger"
+)
+
+var (
+	htmlImgRegex  = regexp.MustCompile(`(?i)<img[^>]+src=["'](https?://[^"'\s>]+)["']`)
+	ogImgRegex    = regexp.MustCompile(`(?i)<meta[^>]+property=["']og:image["'][^>]+content=["'](https?://[^"'\s>]+)["']`)
+	ogImgAltRegex = regexp.MustCompile(`(?i)<meta[^>]+content=["'](https?://[^"'\s>]+)["'][^>]+property=["']og:image["']`)
 )
 
 // RSS XML Data Structures
@@ -30,16 +37,18 @@ type rssChannel struct {
 }
 
 type rssItem struct {
-	Title       string       `xml:"title"`
-	Link        string       `xml:"link"`
-	Description string       `xml:"description"`
-	Content     string       `xml:"encoded"`
-	PubDate     string       `xml:"pubDate"`
-	Creator     string       `xml:"creator"`
-	Author      string       `xml:"author"`
-	Enclosure   rssEnclosure `xml:"enclosure"`
-	Media       rssMedia     `xml:"content"`
-	Thumbnail   rssThumbnail `xml:"thumbnail"`
+	Title        string       `xml:"title"`
+	Link         string       `xml:"link"`
+	Description  string       `xml:"description"`
+	Content      string       `xml:"encoded"`
+	PubDate      string       `xml:"pubDate"`
+	Creator      string       `xml:"creator"`
+	Author       string       `xml:"author"`
+	Enclosure    rssEnclosure `xml:"enclosure"`
+	MediaContent rssMedia     `xml:"http://search.yahoo.com/mrss/ content"`
+	MediaThumb   rssThumbnail `xml:"http://search.yahoo.com/mrss/ thumbnail"`
+	ContentMedia rssMedia     `xml:"content"`
+	ThumbMedia   rssThumbnail `xml:"thumbnail"`
 }
 
 type rssEnclosure struct {
@@ -210,18 +219,19 @@ func (w *Worker) ingestRSSItems(ctx context.Context, items []rssItem, sourceName
 		}
 
 		// Deduplication
-		exists, err := w.repo.ArticleExistsByUrlOrTitle(ctx, link, title)
-		if err == nil && exists {
-			continue
+		// Extract image using enhanced RSS / HTML / OpenGraph extraction
+		imageURL := extractImageFromRSS(&item)
+		if imageURL == "" {
+			imageURL = extractOGImage(link)
 		}
 
-		// Extract image
-		imageURL := item.Enclosure.URL
-		if imageURL == "" {
-			imageURL = item.Media.URL
-		}
-		if imageURL == "" {
-			imageURL = item.Thumbnail.URL
+		// Deduplication & In-place repair for existing articles with fallback/robot images
+		exists, err := w.repo.ArticleExistsByUrlOrTitle(ctx, link, title)
+		if err == nil && exists {
+			if imageURL != "" {
+				_ = w.repo.UpdateArticleImageIfFallback(ctx, link, title, imageURL)
+			}
+			continue
 		}
 
 		author := item.Creator
@@ -283,8 +293,16 @@ func (w *Worker) ingestAtomEntries(ctx context.Context, entries []atomEntry, sou
 			continue
 		}
 
+		imageURL := extractImageFromAtom(&entry)
+		if imageURL == "" {
+			imageURL = extractOGImage(link)
+		}
+
 		exists, err := w.repo.ArticleExistsByUrlOrTitle(ctx, link, title)
 		if err == nil && exists {
+			if imageURL != "" {
+				_ = w.repo.UpdateArticleImageIfFallback(ctx, link, title, imageURL)
+			}
 			continue
 		}
 
@@ -296,7 +314,7 @@ func (w *Worker) ingestAtomEntries(ctx context.Context, entries []atomEntry, sou
 			sourceName,
 			entry.Author.Name,
 			formatPubDate(entry.Published),
-			"",
+			imageURL,
 			w.cfg.GeminiAPIKey,
 		)
 
@@ -453,4 +471,68 @@ func extractDomain(feedURL string) string {
 		return parts[2]
 	}
 	return "Global News"
+}
+
+func extractImageFromRSS(item *rssItem) string {
+	if strings.HasPrefix(item.Enclosure.URL, "http") {
+		return item.Enclosure.URL
+	}
+	if strings.HasPrefix(item.MediaContent.URL, "http") {
+		return item.MediaContent.URL
+	}
+	if strings.HasPrefix(item.MediaThumb.URL, "http") {
+		return item.MediaThumb.URL
+	}
+	if strings.HasPrefix(item.ContentMedia.URL, "http") {
+		return item.ContentMedia.URL
+	}
+	if strings.HasPrefix(item.ThumbMedia.URL, "http") {
+		return item.ThumbMedia.URL
+	}
+	// Extract <img> from Description HTML
+	if m := htmlImgRegex.FindStringSubmatch(item.Description); len(m) > 1 {
+		return m[1]
+	}
+	// Extract <img> from Content:encoded HTML
+	if m := htmlImgRegex.FindStringSubmatch(item.Content); len(m) > 1 {
+		return m[1]
+	}
+	return ""
+}
+
+func extractImageFromAtom(entry *atomEntry) string {
+	if m := htmlImgRegex.FindStringSubmatch(entry.Content); len(m) > 1 {
+		return m[1]
+	}
+	if m := htmlImgRegex.FindStringSubmatch(entry.Summary); len(m) > 1 {
+		return m[1]
+	}
+	return ""
+}
+
+func extractOGImage(url string) string {
+	if url == "" || !strings.HasPrefix(url, "http") {
+		return ""
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Varta-Bot/1.0)")
+	resp, err := client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	buf := make([]byte, 32768)
+	n, _ := io.ReadFull(resp.Body, buf)
+	body := string(buf[:n])
+	if m := ogImgRegex.FindStringSubmatch(body); len(m) > 1 {
+		return m[1]
+	}
+	if m := ogImgAltRegex.FindStringSubmatch(body); len(m) > 1 {
+		return m[1]
+	}
+	return ""
 }

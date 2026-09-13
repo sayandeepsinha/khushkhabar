@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, X, ArrowRight } from 'lucide-react';
+import { X, ArrowRight, Sun } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const BANNER_DISMISSED_KEY = 'varta_banner_dismissed';
@@ -11,7 +11,6 @@ export const SignInBanner: React.FC = () => {
   useEffect(() => {
     // Never show if the user is already signed in
     if (currentUser) {
-      setVisible(false);
       return;
     }
 
@@ -21,7 +20,7 @@ export const SignInBanner: React.FC = () => {
       // Gentle delayed slide-up so user isn't immediately startled
       const timer = setTimeout(() => {
         setVisible(true);
-      }, 1200);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [currentUser]);
@@ -32,7 +31,7 @@ export const SignInBanner: React.FC = () => {
   };
 
   const handleSignInClick = () => {
-    openAuthModal();
+    openAuthModal('Sign in to access your personal reading list, custom topic filters, and reading habits.');
   };
 
   if (!visible || currentUser) return null;
@@ -40,48 +39,47 @@ export const SignInBanner: React.FC = () => {
   return (
     <aside
       aria-label="Sign in banner"
-      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-40 bg-[#1E293B] text-white rounded-2xl shadow-2xl border border-slate-700/60 p-4 animate-in slide-in-from-bottom-6 duration-300 backdrop-blur-md"
+      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-40 bg-[#0F172A] text-white rounded-xl shadow-2xl border border-amber-400/30 p-4 animate-in slide-in-from-bottom-4 duration-200"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
-            <Sparkles className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-slate-800 border border-amber-400/50 flex items-center justify-center shrink-0 mt-0.5">
+            <Sun className="w-4 h-4 text-amber-400 fill-amber-400/80" />
           </div>
           <div>
             <h3 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-              Experience the Full Varta
+              Experience the Full Varta Journal
             </h3>
-            <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-              Sign in to save bookmarks, tune your positivity threshold, and receive personalized uplifting breakthroughs.
+            <p className="text-xs text-slate-300 mt-0.5 leading-relaxed font-sans-body">
+              Save stories to your reading list and receive personalized constructive briefings.
             </p>
           </div>
         </div>
         <button
           onClick={handleDismiss}
-          className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors shrink-0"
+          className="p-1 text-slate-400 hover:text-white rounded-md hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
           aria-label="Dismiss banner"
-          title="Don't show again until next refresh"
+          title="Dismiss until next session"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <div className="mt-3.5 pt-3 border-t border-slate-700/60 flex items-center justify-between gap-2">
+      <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
         <button
           onClick={handleDismiss}
-          className="text-xs text-slate-400 hover:text-slate-200 transition-colors px-2 py-1.5"
+          className="text-xs text-slate-400 hover:text-slate-200 transition-colors px-1 cursor-pointer"
         >
-          Continue as guest
+          Browse as guest
         </button>
         <button
           onClick={handleSignInClick}
-          className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold shadow-xs transition-colors"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
         >
           <span>Sign In</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <ArrowRight className="w-3 h-3" />
         </button>
       </div>
     </aside>
   );
 };
-

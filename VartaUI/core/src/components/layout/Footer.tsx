@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Sun, Heart, Send, Sparkles, ArrowUp } from 'lucide-react';
+import { Sun, Send, Sparkles, ArrowUp, Globe, CheckCircle } from 'lucide-react';
 
 export const Footer = () => {
   const scrollToTop = () => {
@@ -7,113 +7,124 @@ export const Footer = () => {
   };
 
   return (
-    <footer className="bg-[#192231] text-slate-300 pt-16 pb-12 mt-20 border-t border-slate-800">
+    <footer className="bg-[#0F172A] text-slate-300 pt-14 pb-10 mt-20 border-t border-stone-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Top Newsletter Card */}
-        <div className="bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent border border-amber-500/20 rounded-2xl p-6 sm:p-8 mb-16 backdrop-blur-xs flex flex-col md:flex-row items-center justify-between gap-6">
+        {/* Editorial Morning Briefing Card */}
+        <div className="bg-slate-900/90 border border-amber-400/30 rounded-2xl p-6 sm:p-8 mb-14 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="max-w-xl">
-            <div className="flex items-center space-x-2 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-2">
+            <div className="flex items-center space-x-2 text-amber-400 text-[10px] font-bold uppercase tracking-widest mb-1.5">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Free Daily Good News Digest</span>
+              <span>Varta Morning Dispatch</span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-serif-editorial font-bold text-white mb-2">
-              Start your mornings with hope, not dread.
+            <h3 className="text-xl sm:text-2xl font-serif-editorial font-bold text-white mb-1.5 leading-snug">
+              Start your mornings grounded in real solutions.
             </h3>
-            <p className="text-sm text-slate-400">
-              Join 85,000+ mindful readers getting a hand-picked 3-minute morning roundup of humanity's finest achievements.
+            <p className="text-xs sm:text-sm text-slate-400">
+              Join 80,000+ informed readers receiving a curated 3-minute morning roundup of humanity's finest achievements.
             </p>
           </div>
-          <form onSubmit={(e) => { e.preventDefault(); alert("Subscribed to Daily Varta!"); }} className="w-full md:w-auto flex flex-col sm:flex-row gap-2">
+          <form 
+            onSubmit={(e) => { 
+              e.preventDefault(); 
+              alert("Subscribed to the Varta Morning Dispatch!"); 
+            }} 
+            className="w-full md:w-auto flex flex-col sm:flex-row gap-2"
+          >
             <input
               type="email"
               placeholder="Enter your email"
               required
-              className="px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[260px]"
+              className="px-3.5 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[260px]"
             />
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm transition-colors flex items-center justify-center space-x-2 shadow-md shadow-amber-500/20"
+              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
             >
               <span>Subscribe</span>
-              <Send className="w-4 h-4" />
+              <Send className="w-3.5 h-3.5" />
             </button>
           </form>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-slate-800">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-slate-800">
           
           {/* Brand Info */}
-          <div className="space-y-4 md:col-span-1">
+          <div className="space-y-3 md:col-span-1">
             <div className="flex items-center space-x-2.5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white">
-                <Sun className="w-6 h-6" />
+              <div className="w-8 h-8 rounded-lg bg-slate-800 border border-amber-400/50 flex items-center justify-center text-amber-400">
+                <Sun className="w-4 h-4 fill-amber-400/80" />
               </div>
-              <span className="font-serif-editorial text-2xl font-bold text-white">
+              <span className="font-serif-editorial text-2xl font-extrabold text-white">
                 Varta
               </span>
             </div>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Dedicated to restoring faith in our shared human story. Reporting triumphs, scientific leaps, ecological recoveries, and everyday courage.
+            <p className="text-xs text-slate-400 leading-relaxed font-sans-body">
+              An independent news journal dedicated to constructive journalism, evidence-based progress, and human courage worldwide.
             </p>
-            <div className="flex items-center space-x-2 text-xs text-amber-400/90 font-medium">
-              <span>Made with optimism & purpose</span>
-              <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400" />
+            <div className="flex items-center space-x-1.5 text-xs text-emerald-400 font-medium">
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>Verified Facts • Constructive Focus</span>
             </div>
           </div>
 
-          {/* Quick Categories */}
+          {/* Topics / Departments */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-4">
-              Categories
+            <h4 className="text-[11px] font-bold text-slate-200 uppercase tracking-widest mb-3">
+              Departments
             </h4>
-            <ul className="space-y-2.5 text-sm text-slate-400">
-              <li><Link to="/" className="hover:text-amber-300 transition-colors">Planet & Climate</Link></li>
-              <li><Link to="/" className="hover:text-amber-300 transition-colors">Science & Discovery</Link></li>
-              <li><Link to="/" className="hover:text-amber-300 transition-colors">Humanity & Kindness</Link></li>
-              <li><Link to="/" className="hover:text-amber-300 transition-colors">Health & Wellness</Link></li>
-              <li><Link to="/" className="hover:text-amber-300 transition-colors">Positive Tech</Link></li>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li><a href="#planet" className="hover:text-amber-400 transition-colors">Planet & Climate Recovery</a></li>
+              <li><a href="#science" className="hover:text-amber-400 transition-colors">Medicine & Scientific Leaps</a></li>
+              <li><a href="#kindness" className="hover:text-amber-400 transition-colors">Everyday Human Kindness</a></li>
+              <li><a href="#health" className="hover:text-amber-400 transition-colors">Health & Longevity</a></li>
+              <li><a href="#innovation" className="hover:text-amber-400 transition-colors">Constructive Technology</a></li>
             </ul>
           </div>
 
-          {/* Editorial & Values */}
+          {/* Standards & Integrity */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-4">
-              Editorial Standards
+            <h4 className="text-[11px] font-bold text-slate-200 uppercase tracking-widest mb-3">
+              Journalistic Standards
             </h4>
-            <ul className="space-y-2.5 text-sm text-slate-400">
-              <li><span className="hover:text-amber-300 transition-colors cursor-pointer">Verification Process</span></li>
-              <li><span className="hover:text-amber-300 transition-colors cursor-pointer">Joy & Positivity Index</span></li>
-              <li><span className="hover:text-amber-300 transition-colors cursor-pointer">Solution Journalism</span></li>
-              <li><span className="hover:text-amber-300 transition-colors cursor-pointer">Submit Good News</span></li>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li><span className="hover:text-amber-400 transition-colors cursor-pointer">Positivity Scoring Heuristics</span></li>
+              <li><span className="hover:text-amber-400 transition-colors cursor-pointer">Verified Source Attribution</span></li>
+              <li><span className="hover:text-amber-400 transition-colors cursor-pointer">Editorial Review Guidelines</span></li>
+              <li><span className="hover:text-amber-400 transition-colors cursor-pointer">Privacy & Data Governance</span></li>
             </ul>
           </div>
 
-          {/* Account & Policies */}
+          {/* Reader Services */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-4">
-              Account & Legal
+            <h4 className="text-[11px] font-bold text-slate-200 uppercase tracking-widest mb-3">
+              Reader Services
             </h4>
-            <ul className="space-y-2.5 text-sm text-slate-400">
-              <li><Link to="/preferences" className="hover:text-amber-300 transition-colors">My Preferences</Link></li>
-              <li><Link to="/login" className="hover:text-amber-300 transition-colors">Sign In / Register</Link></li>
-              <li><Link to="/delete-account" className="text-rose-400/90 hover:text-rose-300 transition-colors">Delete Account (Data Privacy)</Link></li>
-              <li><span className="text-xs text-slate-500">Go Backend API Ready (v1.0)</span></li>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li><Link to="/preferences" className="hover:text-amber-400 transition-colors">Content Preferences</Link></li>
+              <li><Link to="/delete-account" className="hover:text-amber-400 transition-colors">Account & Privacy</Link></li>
+              <li><span onClick={scrollToTop} className="hover:text-amber-400 transition-colors cursor-pointer">Back to Top ↑</span></li>
             </ul>
           </div>
 
         </div>
 
-        {/* Bottom bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>© {new Date().getFullYear()} Varta Media. All rights reserved.</p>
-          <button
-            onClick={scrollToTop}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
-          >
-            <span>Back to top</span>
-            <ArrowUp className="w-3.5 h-3.5" />
-          </button>
+        {/* Bottom Bar */}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+          <p>© {new Date().getFullYear()} Varta News Journal. All rights reserved.</p>
+          <div className="flex items-center space-x-6">
+            <span className="flex items-center space-x-1 text-slate-400">
+              <Globe className="w-3.5 h-3.5 text-blue-400" />
+              <span>Global Constructive Edition</span>
+            </span>
+            <button
+              onClick={scrollToTop}
+              className="flex items-center space-x-1 text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer"
+            >
+              <span>Top</span>
+              <ArrowUp className="w-3 h-3" />
+            </button>
+          </div>
         </div>
 
       </div>
