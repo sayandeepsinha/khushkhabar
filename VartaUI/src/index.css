@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-outer-backdrop: #FAF8F5;
+  --color-inner-canvas: #FFFDF9;
+  --color-card-surface: #FFFFFF;
+  --color-border-subtle: #EAE5DC;
+  --color-text-main: #1E242B;
+  --color-text-muted: #64748B;
+  --color-brand-gold: #C9932F;
+  
+  /* Mockup Palette */
+  --color-terracotta: #DF8235;
+  --color-terracotta-hover: #C86F26;
+  --color-charcoal-active: #1E242B;
+  
+  /* Category Pastel Backgrounds & Texts */
+  --color-pill-climate: #DCEEFA;
+  --color-pill-climate-text: #1E3A5F;
+  --color-pill-community: #FCEECB;
+  --color-pill-community-text: #78350F;
+  --color-pill-health: #E2F1E8;
+  --color-pill-health-text: #1E4E35;
+  --color-pill-science: #E8E5F8;
+  --color-pill-science-text: #3730A3;
+  --color-pill-culture: #F5ECE8;
+  --color-pill-culture-text: #5B3222;
+}
+
+html.dark {
+  --color-outer-backdrop: #0B131D;
+  --color-inner-canvas: #16202B;
+  --color-card-surface: #1E293B;
+  --color-border-subtle: #2A3848;
+  --color-text-main: #FDF9F2;
+  --color-text-muted: #9BA5AE;
+  --color-brand-gold: #D9A94A;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #FAF8F5;
+  color: #1E242B;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.dark body {
+  background-color: #0B131D;
+  color: #FDF9F2;
+}
+
+.font-serif-editorial {
+  font-family: 'Newsreader', 'Playfair Display', Georgia, Cambria, serif;
+  font-feature-settings: "liga", "kern";
+}
+
+.font-sans-body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Mockup Signature Twilight Hero Gradient */
+.bg-varta-twilight {
+  background: linear-gradient(120deg, #F59E0B 0%, #D97706 28%, #57738B 65%, #18334E 100%);
+}
+
+.bg-varta-auth-twilight {
+  background: linear-gradient(145deg, #F59E0B 0%, #DF8235 30%, #51718A 65%, #19334D 100%);
+}
+
+/* Inner Broadsheet Canvas */
+.varta-canvas {
+  background-color: #FFFDF9;
+  border: 1px solid #EAE5DC;
+}
+
+html.dark .varta-canvas {
+  background-color: #16202B;
+  border-color: #2A3848;
+}
+
+/* Minimalist Search Pill */
+.varta-search-pill {
+  background-color: #EFECE6;
+}
+
+html.dark .varta-search-pill {
+  background-color: #223041;
+}
+
+/* Topic Pills */
+.topic-pill-climate {
+  background-color: #DCEEFA;
+  color: #1E3A5F;
+}
+
+.topic-pill-community {
+  background-color: #FCEECB;
+  color: #78350F;
+}
+
+.topic-pill-health {
+  background-color: #E2F1E8;
+  color: #1E4E35;
+}
+
+.topic-pill-science {
+  background-color: #E8E5F8;
+  color: #3730A3;
+}
+
+.topic-pill-culture {
+  background-color: #F5ECE8;
+  color: #5B3222;
+}
+
+/* Custom Toggle Switch */
+.varta-toggle-active {
+  background: linear-gradient(90deg, #DF8235 0%, #3B5B6E 100%);
+}
+
+/* Custom Refined Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8CFBF;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B5A895;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #0B131D;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #2A3848;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3B4E63;
+}
